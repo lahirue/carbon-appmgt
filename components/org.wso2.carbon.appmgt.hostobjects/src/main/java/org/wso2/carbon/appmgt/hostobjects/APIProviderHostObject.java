@@ -87,6 +87,9 @@ import org.wso2.carbon.appmgt.impl.utils.APIVersionStringComparator;
 import org.wso2.carbon.appmgt.impl.utils.AppManagerUtil;
 import org.wso2.carbon.authenticator.stub.AuthenticationAdminStub;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.core.util.PermissionUpdateUtil;
+import org.wso2.carbon.governance.lcm.util.CommonUtil;
+import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.mgt.stub.UserAdminStub;
 import org.wso2.carbon.utils.CarbonUtils;
@@ -210,6 +213,15 @@ public class APIProviderHostObject extends ScriptableObject {
             Options options = client.getOptions();
             options.setManageSession(true);
 
+            String tenantDomain = MultitenantUtils.getTenantDomain(username);
+            int tenantId =  ServiceReferenceHolder.getInstance().getRealmService().getTenantManager()
+                    .getTenantId(tenantDomain);
+            PermissionUpdateUtil.updatePermissionTree(tenantId);
+
+            RegistryService registryService = ServiceReferenceHolder.getInstance().getRegistryService();
+            CommonUtil.addDefaultLifecyclesIfNotAvailable(registryService.getConfigSystemRegistry(tenantId),
+                    CommonUtil.getRootSystemRegistry(tenantId));
+
             String host = new URL(url).getHost();
             if (!authAdminStub.login(username, password, host)) {
                 handleException("Login failed! Please recheck the username and password and try again..");
@@ -220,7 +232,7 @@ public class APIProviderHostObject extends ScriptableObject {
 
             String usernameWithDomain = AppManagerUtil.getLoggedInUserInfo(sessionCookie,url).getUserName();
             usernameWithDomain = AppManagerUtil.setDomainNameToUppercase(usernameWithDomain);
-            String tenantDomain = MultitenantUtils.getTenantDomain(username);
+            //String tenantDomain = MultitenantUtils.getTenantDomain(username);
             boolean isSuperTenant = false;
 
             if (tenantDomain.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME)) {
